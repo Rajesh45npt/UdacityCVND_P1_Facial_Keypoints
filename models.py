@@ -1,7 +1,6 @@
 ## TODO: define the convolutional neural network architecture
 
 import torch
-from torch.autograd import Variable
 import torch.nn as nn
 import torch.nn.functional as F
 # can use the below import should you choose to initialize the weights of your Net
@@ -20,7 +19,32 @@ class Net(nn.Module):
         
         # As an example, you've been given a convolutional layer, which you may (but don't have to) change:
         # 1 input image channel (grayscale), 32 output channels/feature maps, 5x5 square convolution kernel
-        self.conv1 = nn.Conv2d(1, 32, 5)
+        
+        # Used the AlexNet architecture with help of implementation from Pytorch torchvision.models.alexnet
+        
+        self.processing_unit = nn.Sequential(
+            nn.Conv2d(1, 64, kernel_size=11, stride=4, padding=2),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+            nn.Conv2d(64, 192, kernel_size=5, padding=2),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+            nn.Conv2d(192, 384, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(384, 256, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 256, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2))
+        self.regression_unit = nn.Sequential(
+            nn.Dropout(p=0),
+            nn.Linear(256 * 6 * 6, 4096),
+            nn.ReLU(inplace=True),
+            nn.Dropout(p=0),
+            nn.Linear(4096, 4096),
+            nn.ReLU(inplace=True),
+            nn.Linear(4096, 68*2)
+        )
         
         ## Note that among the layers to add, consider including:
         # maxpooling layers, multiple conv layers, fully-connected layers, and other layers (such as dropout or batch normalization) to avoid overfitting
@@ -34,4 +58,6 @@ class Net(nn.Module):
         
         
         # a modified x, having gone through all the layers of your model, should be returned
-        return x
+        processed_output_features = self.processing_unit(x)
+        landmarks = self.regression_unit(processed_output_features.view(processed_output_features.size()[0],256*6*6))
+        return landmarks
